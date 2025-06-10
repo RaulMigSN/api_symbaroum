@@ -1,5 +1,5 @@
 # API Symbaroum
-Uma API para prática de conhecimentos e prática de front-end adaptado para uma API django.
+Uma API para prática de conhecimentos e prática de front-end adaptado para uma API django. Futuramente pretendo crescer esse programa, sou novo no sistema de RPG também, mas quero tornar mais fácil ainda para jogadores.
 
 ## Descrição
 Decidi fazer uma api que cuidasse e gerenciasse as informações de personagens dos meus jogadores, permitindo que os mesmos pudessem exportar a ficha diretamente para um pdf e claro pudessem alterar a vontade.
