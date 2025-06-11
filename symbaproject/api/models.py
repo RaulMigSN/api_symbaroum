@@ -108,6 +108,55 @@ class DescricaoHabilidade(models.Model):
     
     def __str__(self):
         return f"Descrição {self.get_nivel_habilidade_display()} de {self.habilidade.nome}"
+
+class Qualidade(models.Model):
+    nome = models.CharField(max_length=100, unique=True)
+    descricao = models.TextField(blank=True, null=True)
+    
+    def __str__(self):
+        return self.nome
+
+class Equipamento(models.Model):
+    nome = models.CharField(max_length=100)
+    custo = models.JSONField(default=dict) # Ex: {'taler': 1, 'xelins': 3, 'ortegas': 20}
+    tipo = models.CharField(max_length=2, choices=TipoEquipamento.choices, default=TipoEquipamento.COMUM)
+    personagem = models.ForeignKey(
+        'Personagem',
+        on_delete=models.CASCADE,
+        related_name='equipamentos'
+    )
+    
+class Elixir(Equipamento):
+    efeito = models.TextField()
+    
+    def __str__(self):
+        return f"{self.nome} (Efeito: {self.efeito})"
+    
+class Armas(Equipamento):
+    dano = models.CharField(max_length=50)  # Ex: "1d6"
+    qualidade = models.ForeignKey(
+        Qualidade,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='armas'
+    )
+    
+    def __str__(self):
+        return f"{self.nome} (Dano: {self.dano}, Alcance: {self.alcance})"
+
+class Armadura(Equipamento):
+    protecao = models.CharField(max_length=50)  # Ex: "1d4"
+    qualidade = models.ForeignKey(
+        Qualidade,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='armas'
+    )
+    
+    def __str__(self):
+        return f"{self.nome} (Proteção: {self.protecao})"
     
 class Personagem(models.Model):
     jogador = models.ForeignKey(Jogador, on_delete=models.CASCADE, related_name='personagens')
@@ -140,6 +189,23 @@ class Personagem(models.Model):
         through='Aprende',
         related_name='personagens'
     )
+    altura = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        blank=True, 
+        null=True
+    )
+    peso = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        blank=True, 
+        null=True
+    )
+    aparencia = models.TextField(blank=True, null=True)
+    foto = models.ImageField(upload_to='fotos_personagens/', blank=True, null=True)
+    historico = models.TextField(blank=True, null=True)
+    objetivo_pessoal = models.TextField(blank=True, null=True)
+    amigos_e_companheiros = models.TextField(blank=True, null=True)
     
     
     def __str__(self):
