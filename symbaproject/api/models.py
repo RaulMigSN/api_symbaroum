@@ -132,14 +132,14 @@ class Elixir(Equipamento):
     def __str__(self):
         return f"{self.nome} (Efeito: {self.efeito})"
     
-class Armas(Equipamento):
+class Arma(Equipamento):
     dano = models.CharField(max_length=50)  # Ex: "1d6"
     qualidade = models.ForeignKey(
         Qualidade,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='armas'
+        related_name='arma'
     )
     
     def __str__(self):
@@ -152,7 +152,7 @@ class Armadura(Equipamento):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='armas'
+        related_name='armadura'
     )
     
     def __str__(self):
