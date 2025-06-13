@@ -55,10 +55,10 @@ class TipoEquipamento(models.TextChoices):
 
 #Classes de modelos para o sistema de RPG
 class Usuario(models.Model):
-    _nome = models.CharField(max_length=100)
-    _login = models.CharField(max_length=10, unique=True)
-    _email = models.EmailField(unique=True)
-    _senha = models.CharField(max_length=128)
+    nome = models.CharField(max_length=100)
+    login = models.CharField(max_length=10, unique=True)
+    email = models.EmailField(unique=True)
+    senha = models.CharField(max_length=128)
     
     def verificarSenha(self, senha):
         return check_password(senha, self.senha)
@@ -93,8 +93,8 @@ class Usuario(models.Model):
         abstract = True
         
 class Jogador(Usuario):
-    _biografia = models.TextField(blank=True, null=True)
-    _fotoDePerfil = models.ImageField(upload_to='fotos_perfil/', blank=True, null=True)
+    biografia = models.TextField(blank=True, null=True)
+    fotoDePerfil = models.ImageField(upload_to='fotos_perfil/', blank=True, null=True)
     
     def adicionar_personagem(self, nome_personagem):
         if not nome_personagem:
@@ -110,9 +110,9 @@ class Jogador(Usuario):
         return self.nome
 
 class Habilidade(models.Model):
-    _nome = models.CharField(max_length=100)
-    _descricao_geral = models.TextField()
-    _tipo = models.CharField(
+    nome = models.CharField(max_length=100)
+    descricao_geral = models.TextField()
+    tipo = models.CharField(
         max_length=1,
         choices=TipoHabilidade.choices,
     )
@@ -121,22 +121,22 @@ class Habilidade(models.Model):
         return self.nome
 
 class DescricaoHabilidade(models.Model):
-    _habilidade = models.ForeignKey(
+    habilidade = models.ForeignKey(
         Habilidade,
         on_delete=models.CASCADE,
         related_name='descricoes'
     )
-    _nivel_habilidade = models.CharField(
+    nivel_habilidade = models.CharField(
         max_length=1,
         choices=NivelHabilidade.choices,
         default=NivelHabilidade.NOVATO
     )
-    _tipo_acao = models.CharField(
+    tipo_acao = models.CharField(
         max_length=1,
         choices=TipoAcao.choices,
         default=TipoAcao.ATIVA
     )
-    _descricao = models.TextField()
+    descricao = models.TextField()
     
     class Meta:
         unique_together = ('habilidade', 'nivel_habilidade')
@@ -151,17 +151,17 @@ class DescricaoHabilidade(models.Model):
         return f"Descrição {self.get_nivel_habilidade_display()} de {self.habilidade.nome}"
 
 class Qualidade(models.Model):
-    _nome = models.CharField(max_length=100, unique=True)
-    _descricao = models.TextField(blank=True, null=True)
+    nome = models.CharField(max_length=100, unique=True)
+    descricao = models.TextField(blank=True, null=True)
     
     def __str__(self):
         return self.nome
 
 class Equipamento(models.Model):
-    _nome = models.CharField(max_length=100)
-    _custo = models.JSONField(default=dict) # Ex: {'taler': 1, 'xelins': 3, 'ortegas': 20}
-    _tipo = models.CharField(max_length=2, choices=TipoEquipamento.choices, default=TipoEquipamento.COMUM)
-    _personagem = models.ForeignKey(
+    nome = models.CharField(max_length=100)
+    custo = models.JSONField(default=dict) # Ex: {'taler': 1, 'xelins': 3, 'ortegas': 20}
+    tipo = models.CharField(max_length=2, choices=TipoEquipamento.choices, default=TipoEquipamento.COMUM)
+    personagem = models.ForeignKey(
         'Personagem',
         on_delete=models.CASCADE,
         related_name='equipamentos'
@@ -171,14 +171,14 @@ class Equipamento(models.Model):
         return f"{self.nome} ({self.tipo})"
     
 class Elixir(Equipamento):
-    _efeito = models.TextField()
+    efeito = models.TextField()
     
     def __str__(self):
         return f"{self.nome} (Efeito: {self.efeito})"
     
 class Arma(Equipamento):
-    _dano = models.CharField(max_length=50)  # Ex: "1d6"
-    _qualidade = models.ForeignKey(
+    dano = models.CharField(max_length=50)  # Ex: "1d6"
+    qualidade = models.ForeignKey(
         Qualidade,
         on_delete=models.SET_NULL,
         null=True,
@@ -190,8 +190,8 @@ class Arma(Equipamento):
         return f"{self.nome} (Dano: {self.dano})"
 
 class Armadura(Equipamento):
-    _protecao = models.CharField(max_length=50)  # Ex: "1d4"
-    _qualidade = models.ForeignKey(
+    protecao = models.CharField(max_length=50)  # Ex: "1d4"
+    qualidade = models.ForeignKey(
         Qualidade,
         on_delete=models.SET_NULL,
         null=True,
@@ -203,9 +203,9 @@ class Armadura(Equipamento):
         return f"{self.nome} (Proteção: {self.protecao})"
     
 class Artefato(models.Model):
-    _titulo = models.CharField(max_length=100)
-    _descricao = models.TextField()
-    _personagem = models.ForeignKey(
+    titulo = models.CharField(max_length=100)
+    descricao = models.TextField()
+    personagem = models.ForeignKey(
         'Personagem',
         on_delete=models.CASCADE,
         related_name='artefatos',
@@ -217,86 +217,86 @@ class Artefato(models.Model):
         return f"{self.titulo} ({self.personagem.nome if self.personagem else 'Sem Personagem'})"
     
 class Poder(models.Model):
-    _artefato = models.ForeignKey(
+    artefato = models.ForeignKey(
         Artefato,
         on_delete=models.CASCADE,
         related_name='poderes'
     )
-    _nome = models.CharField(max_length=100)
-    _requesito = models.TextField()
-    _descricao = models.TextField()
-    _acao = models.CharField(
+    nome = models.CharField(max_length=100)
+    requesito = models.TextField()
+    descricao = models.TextField()
+    acao = models.CharField(
         max_length=1,
         choices=TipoAcao.choices,
         default=TipoAcao.ATIVA
     )
-    _corrupcao = models.CharField(max_length=50)  # Ex: "1d6"
+    corrupcao = models.CharField(max_length=50)  # Ex: "1d6"
     
     def __str__(self):
         return f"{self.nome} ({self.artefato.titulo})"
     
 class Personagem(models.Model):
-    _jogador = models.ForeignKey(Jogador, on_delete=models.CASCADE, related_name='personagens')
-    _nome = models.CharField(max_length=100)
-    _idade = models.PositiveIntegerField(default=18)
-    _experiencia = models.PositiveIntegerField(default=0)
-    _experiencia_nao_gasta = models.PositiveIntegerField(default=0)
-    _raca = models.CharField(max_length=2, choices=Raca.choices, default=Raca.HUMANO_AMBRIANO)
-    _ocupacao = models.CharField(max_length=100, blank=True, null=True)
-    _vitaliade_maxima = models.PositiveIntegerField(blank=True, null=True)
-    _vitalidade_atual = models.PositiveIntegerField(blank=True, null=True)
-    _limiar_de_dor = models.PositiveIntegerField(blank=True, null=True)
-    _corrupcao_permanente = models.PositiveIntegerField(default=0)
-    _corrupcao_temporaria = models.PositiveIntegerField(default=0)
-    _limiar_de_corrupcao = models.PositiveIntegerField(blank=True, null=True)
-    _sombra = models.CharField(max_length=100, blank=True, null=True)
-    _citacao = models.CharField(max_length=200, blank=True, null=True)
+    jogador = models.ForeignKey(Jogador, on_delete=models.CASCADE, related_name='personagens')
+    nome = models.CharField(max_length=100)
+    idade = models.PositiveIntegerField(default=18)
+    experiencia = models.PositiveIntegerField(default=0)
+    experiencia_nao_gasta = models.PositiveIntegerField(default=0)
+    raca = models.CharField(max_length=2, choices=Raca.choices, default=Raca.HUMANO_AMBRIANO)
+    ocupacao = models.CharField(max_length=100, blank=True, null=True)
+    vitaliade_maxima = models.PositiveIntegerField(blank=True, null=True)
+    vitalidade_atual = models.PositiveIntegerField(blank=True, null=True)
+    limiar_de_dor = models.PositiveIntegerField(blank=True, null=True)
+    corrupcao_permanente = models.PositiveIntegerField(default=0)
+    corrupcao_temporaria = models.PositiveIntegerField(default=0)
+    limiar_de_corrupcao = models.PositiveIntegerField(blank=True, null=True)
+    sombra = models.CharField(max_length=100, blank=True, null=True)
+    citacao = models.CharField(max_length=200, blank=True, null=True)
     
     # Atributos básicos do personagem, eles vão definir alguns dos atributos acima.
-    _astuto = models.PositiveBigIntegerField(default=10)
-    _discreto = models.PositiveBigIntegerField(default=10)
-    _persuasivo = models.PositiveBigIntegerField(default=10)
-    _preciso = models.PositiveBigIntegerField(default=10)
-    _rapido = models.PositiveBigIntegerField(default=10)
-    _resoluto = models.PositiveBigIntegerField(default=10)
-    _vigilante = models.PositiveBigIntegerField(default=10)
-    _vigoroso = models.PositiveBigIntegerField(default=10)
-    _habilidades_e_poderes = models.ManyToManyField(
+    astuto = models.PositiveBigIntegerField(default=10)
+    discreto = models.PositiveBigIntegerField(default=10)
+    persuasivo = models.PositiveBigIntegerField(default=10)
+    preciso = models.PositiveBigIntegerField(default=10)
+    rapido = models.PositiveBigIntegerField(default=10)
+    resoluto = models.PositiveBigIntegerField(default=10)
+    vigilante = models.PositiveBigIntegerField(default=10)
+    vigoroso = models.PositiveBigIntegerField(default=10)
+    habilidades_e_poderes = models.ManyToManyField(
         Habilidade, 
         through='Aprende',
         related_name='personagens'
     )
-    _altura = models.DecimalField(
+    altura = models.DecimalField(
         max_digits=5, 
         decimal_places=2, 
         blank=True, 
         null=True
     )
-    _peso = models.DecimalField(
+    peso = models.DecimalField(
         max_digits=5, 
         decimal_places=2, 
         blank=True, 
         null=True
     )
-    _aparencia = models.TextField(blank=True, null=True)
-    _foto = models.ImageField(upload_to='fotos_personagens/', blank=True, null=True)
-    _historico = models.TextField(blank=True, null=True)
-    _objetivo_pessoal = models.TextField(blank=True, null=True)
-    _amigos_e_companheiros = models.TextField(blank=True, null=True)
-    _armadura_equipada = models.OneToOneField(
+    aparencia = models.TextField(blank=True, null=True)
+    foto = models.ImageField(upload_to='fotos_personagens/', blank=True, null=True)
+    historico = models.TextField(blank=True, null=True)
+    objetivo_pessoal = models.TextField(blank=True, null=True)
+    amigos_e_companheiros = models.TextField(blank=True, null=True)
+    armadura_equipada = models.OneToOneField(
         'Armadura',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='personagem_vestindo'
     )
-    _armas_equipadas = models.ManyToManyField(
+    armas_equipadas = models.ManyToManyField(
         'Arma',
         blank=True,
         related_name='personagem_empunhando'
     )
-    _dinheiro = models.JSONField(default=dict) # Ex: {'taler': 1, 'xelins': 3, 'ortegas': 20}
-    _outras_riquezas = models.TextField(blank=True, null=True)
+    dinheiro = models.JSONField(default=dict) # Ex: {'taler': 1, 'xelins': 3, 'ortegas': 20}
+    outras_riquezas = models.TextField(blank=True, null=True)
     
     
     def equipar_armadura(self, armadura):
@@ -342,18 +342,14 @@ class Personagem(models.Model):
                 'nivel': nivel,
             })
         return resultado
-    
-    @classmethod
-    def criar_com_padrao(cls, jogador, nome):
-        return cls.objects.create(nome=nome, jogador=jogador)
         
     def __str__(self):
         return f"{self.nome} ({self.jogador.nome})"
     
 class Aprende(models.Model):
-    _personagem = models.ForeignKey(Personagem, on_delete=models.CASCADE)
-    _habilidade = models.ForeignKey(Habilidade, on_delete=models.CASCADE)
-    _nivel = models.CharField(
+    personagem = models.ForeignKey(Personagem, on_delete=models.CASCADE)
+    habilidade = models.ForeignKey(Habilidade, on_delete=models.CASCADE)
+    nivel = models.CharField(
         max_length=1, 
         choices=NivelHabilidade.choices, 
         default=NivelHabilidade.NOVATO
