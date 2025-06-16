@@ -66,12 +66,21 @@ class Usuario(models.Model):
     @staticmethod
     def autenticar(login, senha):
         try:
-            jogador = Jogador.objects.get(login=login)
-            if jogador.verificarSenha(senha):
-                return jogador
-        except Jogador.DoesNotExist:
+            usuario = Usuario.objects.get(login=login)
+            if usuario.verificarSenha(senha):
+                return usuario
+        except Usuario.DoesNotExist:
             pass
         return None
+    
+    def get_subclasse(self):
+        """Retorna a instância da subclasse correspondente, se existir."""
+        for subclass in self.__class__.__subclasses__():
+            try:
+                return subclass.objects.get(pk=self.pk)
+            except subclass.DoesNotExist:
+                continue
+        return self
     
     def atualizarSenha(self, senha_atual, nova_senha):
         if not self.verificarSenha(senha_atual):
@@ -89,8 +98,13 @@ class Usuario(models.Model):
         self.email = novo_email
         self.save()
     
-    class Meta:
-        abstract = True
+    def save(self, *args, **kwargs):
+        if not self.pk or not Usuario.objects.filter(pk=self.pk, senha=self.senha).exists():
+            self.senha = make_password(self.senha)
+        super().save(*args, **kwargs)
+    
+    def __str__(self):
+        return self.nome
         
 class Jogador(Usuario):
     biografia = models.TextField(blank=True, null=True)
@@ -116,6 +130,14 @@ class Habilidade(models.Model):
         max_length=1,
         choices=TipoHabilidade.choices,
     )
+    
+    def listar_descricoes(self):
+        return {
+            descricao.get_nivel_habilidade_display(): {
+                'tipo_acao': descricao.get_tipo_acao_display(),
+                'descricao': descricao.descricao
+            } for descricao in self.descricoes.all()
+        }
     
     def __str__(self):
         return self.nome
