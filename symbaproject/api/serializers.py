@@ -18,6 +18,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Cria um novo usuário com a senha criptografada."""
         senha = validated_data.pop('senha')
+        validated_data.pop('confirmar_senha',None)  # Remove o campo de confirmação de senha, pois não é necessário no modelo
         usuario = Usuario(**validated_data)
         usuario.senha = make_password(senha)  # Criptografa a senha
         usuario.save()
