@@ -15,4 +15,5 @@ Prosseguir a linha da ideia 1, após implementar uma interface web, realizar a c
 - Quero deixar completo essa api para implementar diversos fronts em diversas tecnologias, isso é um parque tecnológico para mim, testarei tudo possível.
 - Após implementar o lado do personagem, partirei para o sistema do Mestre, adicionando a essa api ou a uma aplicação a parte já que o django permite.
 - Caso deseje utilizar, posso fazer um tutorial melhor desenvolvido, estou fazendo isso como treino.
+- Construir front-end baseado em angular, aproveitar para treinar as tecnologias javascript e deixar mais claro o código, a ideia é poder trabalhar com um CRUD bem feito, algumas rotas e views podem ser inseridas para maior utilização da API, será inserida futuramente ou conforme o desenvolvimento do projeto.
   
