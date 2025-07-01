@@ -3,6 +3,35 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from .models import Usuario, Jogador, Habilidade, DescricaoHabilidade, Qualidade, Equipamento, Elixir, Arma, Armadura, Artefato, Poder, Personagem, Aprende
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import authenticate
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    login = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        login = attrs.get('login')
+        password = attrs.get('password')
+
+        try:
+            usuario = Usuario.objects.get(login=login)
+        except Usuario.DoesNotExist:
+            raise serializers.ValidationError("Login ou senha inválidos.")
+
+        if not usuario.verificarSenha(password):
+            raise serializers.ValidationError("Login ou senha inválidos.")
+
+        data = super().validate({
+            'username': usuario.login,  # necessário para compatibilidade interna
+            'password': password
+        })
+
+        # Você pode adicionar mais informações ao payload se quiser
+        data['user_id'] = usuario.id
+        data['nome'] = usuario.nome
+
+        return data
 
 class UsuarioSerializer(serializers.ModelSerializer):
     """Serializador para o modelo Usuario."""
@@ -11,7 +40,9 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Valida se a senha e a confirmação de senha são iguais."""
-        if data['senha'] != data['confirmar_senha']:
+        senha = data.get('senha') # data.get evita eu ter um KeyError caso o campo não venha.
+        confirmar = data.get('confirmar_senha')
+        if senha != confirmar:
             raise serializers.ValidationError("As senhas não coincidem.")
         return data
     
