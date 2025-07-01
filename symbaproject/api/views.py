@@ -3,6 +3,9 @@ from rest_framework.viewsets import ModelViewSet
 from .models import Usuario, Jogador, Habilidade, DescricaoHabilidade, Qualidade, Equipamento, Elixir, Arma, Armadura, Artefato, Poder, Personagem, Aprende
 from .serializers import UsuarioSerializer, JogadorSerializer, HabilidadeSerializer, DescricaoHabilidadeSerializer, QualidadeSerializer, EquipamentoSerializer, ElixirSerializer, ArmaSerializer, ArmaduraSerializer, ArtefatoSerializer, PoderSerializer, PersonagemSerializer, AprendeSerializer
 
+"""Uso do ModelViewSet transforma todas as views no que queremos, onde cada view dará acesso a o CRUD facilmente, ou seja, os ViewsSets irão herdar automaticamente todas as
+operações REST padrão, ou seja, GET, POST, GET(por id), PUT/PATCH e DELETE"""
+
 class UsuarioViewSet(ModelViewSet):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer
