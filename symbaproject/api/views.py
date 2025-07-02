@@ -1,15 +1,34 @@
 from django.shortcuts import render
+from rest_framework.exceptions  import ValidationError
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.permissions import IsAuthenticated
-from .models import Usuario, Jogador, Habilidade, DescricaoHabilidade, Qualidade, Equipamento, Elixir, Arma, Armadura, Artefato, Poder, Personagem, Aprende
-from .serializers import UsuarioSerializer, JogadorSerializer, HabilidadeSerializer, DescricaoHabilidadeSerializer, QualidadeSerializer, EquipamentoSerializer, ElixirSerializer, ArmaSerializer, ArmaduraSerializer, ArtefatoSerializer, PoderSerializer, PersonagemSerializer, AprendeSerializer, CustomTokenObtainPairSerializer
+from .models import ArmaBase, ArmaduraBase, ArtefatoBase, EquipamentoBase, Usuario, Jogador, Habilidade, DescricaoHabilidade, Qualidade, Equipamento, Elixir, Arma, Armadura, Artefato, Poder, Personagem, Aprende
+from .serializers import ArmaBaseSerializer, ArmaduraBaseSerializer, ArtefatoBaseSerializer, EquipamentoBaseSerializer, UsuarioSerializer, JogadorSerializer, HabilidadeSerializer, DescricaoHabilidadeSerializer, QualidadeSerializer, EquipamentoSerializer, ElixirSerializer, ArmaSerializer, ArmaduraSerializer, ArtefatoSerializer, PoderSerializer, PersonagemSerializer, AprendeSerializer, CustomTokenObtainPairSerializer
 
 """Uso do ModelViewSet transforma todas as views no que queremos, onde cada view dará acesso a o CRUD facilmente, ou seja, os ViewsSets irão herdar automaticamente todas as
 operações REST padrão, ou seja, GET, POST, GET(por id), PUT/PATCH e DELETE"""
 
+# Retorna somente o equipamento do usuário que fez a requisição, utilizando o filtro em todas as.
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    
+class PersonagemScopedViewSet(ModelViewSet):
+    def get_personagem(self):
+        personagem_id = self.request.data.get('personagem') or self.request.query_params.get('personagem')
+        if not personagem_id:
+            raise ValidationError("ID do personagem é obrigatório.")
+        try:
+            return Personagem.objects.get(id=personagem_id, jogador__usuario=self.request.user)
+        except Personagem.DoesNotExist:
+            raise ValidationError("Personagem não encontrado.")
+
+    def perform_create(self, serializer):
+        serializer.save(personagem=self.get_personagem())
+
+    def get_queryset(self):
+        return self.queryset.filter(personagem=self.get_personagem())
     
 class UsuarioViewSet(ModelViewSet):
     queryset = Usuario.objects.all()
@@ -19,11 +38,16 @@ class JogadorViewSet(ModelViewSet):
     queryset = Jogador.objects.all()
     serializer_class = JogadorSerializer
     permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        return Jogador.objects.filter(usuario=self.request.user)
 
 class PersonagemViewSet(ModelViewSet):
     queryset = Personagem.objects.all()
     serializer_class = PersonagemSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return Personagem.objects.filter(jogador__pk=self.request.user.pk)
     
 class HabilidadeViewSet(ModelViewSet):
     queryset = Habilidade.objects.all()
@@ -37,26 +61,43 @@ class QualidadeViewSet(ModelViewSet):
     queryset = Qualidade.objects.all()
     serializer_class = QualidadeSerializer
 
-class EquipamentoViewSet(ModelViewSet):
+class EquipamentoBaseViewSet(ModelViewSet):
+    queryset = EquipamentoBase.objects.all()
+    serializer_class = EquipamentoBaseSerializer
+
+class EquipamentoViewSet(PersonagemScopedViewSet):
     queryset = Equipamento.objects.all()
     serializer_class = EquipamentoSerializer
     permission_classes = [IsAuthenticated]
 
-class ElixirViewSet(ModelViewSet):
+class ElixirViewSet(PersonagemScopedViewSet):
     queryset = Elixir.objects.all()
     serializer_class = ElixirSerializer
+    permission_classes = [IsAuthenticated]
 
-class ArmaViewSet(ModelViewSet):
-    queryset = Arma.objects.all()
+class ArmaBaseViewSet(ModelViewSet):
+    queryset = ArmaBase.objects.all()
+    serializer_class = ArmaBaseSerializer
+
+class ArmaViewSet(PersonagemScopedViewSet):
     serializer_class = ArmaSerializer
+    queryset = Arma.objects.all()
     permission_classes = [IsAuthenticated]
 
-class ArmaduraViewSet(ModelViewSet):
-    queryset = Armadura.objects.all()
+class ArmaduraBaseViewSet(ModelViewSet):
+    queryset = ArmaduraBase.objects.all()
+    serializer_class = ArmaduraBaseSerializer
+
+class ArmaduraViewSet(PersonagemScopedViewSet):
     serializer_class = ArmaduraSerializer
+    queryset = Armadura.objects.all()
     permission_classes = [IsAuthenticated]
 
-class ArtefatoViewSet(ModelViewSet):
+class ArtefatoBaseViewSet(ModelViewSet):
+    queryset = ArtefatoBase.objects.all()
+    serializer_class = ArtefatoBaseSerializer
+
+class ArtefatoViewSet(PersonagemScopedViewSet):
     queryset = Artefato.objects.all()
     serializer_class = ArtefatoSerializer
     permission_classes = [IsAuthenticated]
@@ -66,7 +107,17 @@ class PoderViewSet(ModelViewSet):
     serializer_class = PoderSerializer
     permission_classes = [IsAuthenticated]
     
+    def get_queryset(self):
+        return Poder.objects.filter(
+            artefato__personagem__jogador__usuario=self.request.user
+        )
+    
 class AprendeViewSet(ModelViewSet):
     queryset = Aprende.objects.all()
     serializer_class = AprendeSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return Aprende.objects.filter(
+            personagem__jogador__usuario=self.request.user
+        )

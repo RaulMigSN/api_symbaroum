@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from .models import Usuario, Jogador, Habilidade, DescricaoHabilidade, Qualidade, Equipamento, Elixir, Arma, Armadura, Artefato, Poder, Personagem, Aprende
+from .models import ArmaBase, ArmaduraBase, ArtefatoBase, EquipamentoBase, Usuario, Jogador, Habilidade, DescricaoHabilidade, Qualidade, Equipamento, Elixir, Arma, Armadura, Artefato, Poder, Personagem, Aprende
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 
@@ -105,13 +105,27 @@ class QualidadeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Qualidade
         fields = '__all__'
+        
+class EquipamentoBaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EquipamentoBase
+        fields = ['id', 'nome', 'custo', 'tipo', 'descricao']
 
 class EquipamentoSerializer(serializers.ModelSerializer):
-    """Serializador para o modelo Equipamento."""
-    
+    equipamento_base = EquipamentoBaseSerializer(read_only=True)
+    equipamento_base_id = serializers.PrimaryKeyRelatedField(
+        queryset=EquipamentoBase.objects.all(), source='equipamento_base', write_only=True
+    )
+
     class Meta:
         model = Equipamento
-        fields = '__all__'
+        fields = ['id', 'personagem', 'equipamento_base', 'equipamento_base_id', 'equipado']
+        read_only_fields = ['personagem']
+
+    def create(self, validated_data):
+        personagem = self.context['request'].user.jogador.listar_personagens()[0]
+        validated_data['personagem'] = personagem
+        return super().create(validated_data)
 
 class ElixirSerializer(serializers.ModelSerializer):
     """Serializador para o modelo Elixir."""
@@ -120,11 +134,25 @@ class ElixirSerializer(serializers.ModelSerializer):
         model = Elixir
         fields = '__all__'
 
+class ArmaBaseSerializer(serializers.ModelSerializer):
+    """Serializador para o modelo Base de Armas (Catálogo)"""
+    
+    class Meta:
+        model = ArmaBase
+        fields = '__all__'
+
 class ArmaSerializer(serializers.ModelSerializer):
     """Serializador para o modelo Arma."""
     
     class Meta:
         model = Arma
+        fields = '__all__'
+
+class ArmaduraBaseSerializer(serializers.ModelSerializer):
+    """Serializador para o modelo Base de Armas (Catálogo)"""
+    
+    class Meta:
+        model = ArmaduraBase
         fields = '__all__'
         
 class ArmaduraSerializer(serializers.ModelSerializer):
@@ -133,13 +161,27 @@ class ArmaduraSerializer(serializers.ModelSerializer):
     class Meta:
         model = Armadura
         fields = '__all__'
-        
+
+class ArtefatoBaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ArtefatoBase
+        fields = ['id', 'titulo', 'descricao']
+
 class ArtefatoSerializer(serializers.ModelSerializer):
-    """Serializador para o modelo Artefato."""
-    
+    artefato_base = ArtefatoBaseSerializer(read_only=True)
+    artefato_base_id = serializers.PrimaryKeyRelatedField(
+        queryset=ArtefatoBase.objects.all(), source='artefato_base', write_only=True
+    )
+
     class Meta:
         model = Artefato
-        fields = '__all__'
+        fields = ['id', 'personagem', 'artefato_base', 'artefato_base_id', 'equipado']
+        read_only_fields = ['personagem']
+
+    def create(self, validated_data):
+        personagem = self.context['request'].user.jogador.listar_personagens()[0]
+        validated_data['personagem'] = personagem
+        return super().create(validated_data)
 
 class PoderSerializer(serializers.ModelSerializer):
     """Serializador para o modelo Poder."""

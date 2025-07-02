@@ -179,54 +179,94 @@ class Qualidade(models.Model):
     def __str__(self):
         return self.nome
 
-class Equipamento(models.Model):
+class EquipamentoBase(models.Model):
+    """Catálogo do equipamento, ou seja, todos os equipamentos do jogo, mas sem ser específicado de qual personagem é."""
     nome = models.CharField(max_length=100)
-    custo = models.JSONField(default=dict) # Ex: {'taler': 1, 'xelins': 3, 'ortegas': 20}
+    custo = models.JSONField(default=dict)
     tipo = models.CharField(max_length=2, choices=TipoEquipamento.choices, default=TipoEquipamento.COMUM)
+    descricao = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return self.nome
+
+class Equipamento(models.Model):
     personagem = models.ForeignKey(
         'Personagem',
         on_delete=models.CASCADE,
-        related_name='equipamentos'
+        related_name='equipamentos',
+        null=True,
+        blank=True,
     )
-    
+    equipamento_base = models.ForeignKey(
+        EquipamentoBase,
+        on_delete=models.CASCADE,
+        related_name='equipamentos',
+        null=True,
+        blank=True,
+    )
+    equipado = models.BooleanField(default=False)  # Se o personagem tá usando o equipamento
+
     def __str__(self):
-        return f"{self.nome} ({self.tipo})"
+        return f"{self.equipamento_base.nome} de {self.personagem.nome}"
     
 class Elixir(Equipamento):
     efeito = models.TextField()
     
     def __str__(self):
         return f"{self.nome} (Efeito: {self.efeito})"
-    
-class Arma(Equipamento):
+
+class ArmaBase(EquipamentoBase):
     dano = models.CharField(max_length=50)  # Ex: "1d6"
     qualidade = models.ForeignKey(
         Qualidade,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='armas'
+        related_name='armas_base'
+    )
+
+class Arma(Equipamento):
+    arma_base = models.ForeignKey(
+        ArmaBase,
+        on_delete=models.CASCADE,
+        related_name='armas',
+        null=True,
+        blank=True,
     )
     
     def __str__(self):
-        return f"{self.nome} (Dano: {self.dano})"
+        return f"{self.arma_base.nome} (Dano: {self.arma_base.dano})"
 
-class Armadura(Equipamento):
+class ArmaduraBase(EquipamentoBase):
     protecao = models.CharField(max_length=50)  # Ex: "1d4"
     qualidade = models.ForeignKey(
         Qualidade,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='armaduras'
+        related_name='armaduras_base'
+    )
+
+class Armadura(Equipamento):
+    armadura_base = models.ForeignKey(
+        ArmaduraBase,
+        on_delete=models.CASCADE,
+        related_name='armaduras',
+        null=True,
+        blank=True,
     )
     
     def __str__(self):
-        return f"{self.nome} (Proteção: {self.protecao})"
-    
-class Artefato(models.Model):
+        return f"{self.armadura_base.nome} (Proteção: {self.armadura_base.protecao})"
+
+class ArtefatoBase(models.Model):
     titulo = models.CharField(max_length=100)
     descricao = models.TextField()
+
+    def __str__(self):
+        return self.titulo
+
+class Artefato(models.Model):
     personagem = models.ForeignKey(
         'Personagem',
         on_delete=models.CASCADE,
@@ -234,9 +274,17 @@ class Artefato(models.Model):
         null=True,
         blank=True
     )
+    artefato_base = models.ForeignKey(
+        ArtefatoBase,
+        on_delete=models.CASCADE,
+        related_name='artefatos',
+        null=True,
+        blank=True,
+    )
+    equipado = models.BooleanField(default=False)
     
     def __str__(self):
-        return f"{self.titulo} ({self.personagem.nome if self.personagem else 'Sem Personagem'})"
+        return f"{self.artefato_base.titulo} ({self.personagem.nome if self.personagem else 'Sem Personagem'})"
     
 class Poder(models.Model):
     artefato = models.ForeignKey(
