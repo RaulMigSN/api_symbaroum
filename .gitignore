@@ -1,2 +1,4 @@
 *.pyc
 *.sqlite3
+symbaproject/api/migrations/
+symbaproject/api/__pycache__/
