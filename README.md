@@ -17,3 +17,5 @@ Prosseguir a linha da ideia 1, após implementar uma interface web, realizar a c
 - Caso deseje utilizar, posso fazer um tutorial melhor desenvolvido, estou fazendo isso como treino.
 - Construir front-end baseado em angular, aproveitar para treinar as tecnologias javascript e deixar mais claro o código, a ideia é poder trabalhar com um CRUD bem feito, algumas rotas e views podem ser inseridas para maior utilização da API, será inserida futuramente ou conforme o desenvolvimento do projeto.
   
+## Pensamentos Para aplicações
+- Atualmente planejo realizar um sistema que funcione web e mobile, utilizando dart ou ionic, provavelmente ionic, pois quero trabalhar diretamente com javascript.

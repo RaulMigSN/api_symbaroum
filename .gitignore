@@ -2,3 +2,4 @@
 *.sqlite3
 symbaproject/api/migrations/
 symbaproject/api/__pycache__/
+symbaproject/symbaproject/__pycache__/
