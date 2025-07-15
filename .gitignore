@@ -3,3 +3,6 @@
 symbaproject/api/migrations/
 symbaproject/api/__pycache__/
 symbaproject/symbaproject/__pycache__/
+*.env
+.venv
+.pytest_cache

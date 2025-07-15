@@ -3,3 +3,6 @@ djangorestframework
 django-cors-headers
 django-extensions
 environs
+pytest
+pytest-django
+rest_framework_simplejwt
