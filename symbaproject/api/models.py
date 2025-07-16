@@ -1,6 +1,6 @@
 from django.db import models
-from django.core.exceptions import ValidationError
-from django.contrib.auth.hashers import check_password, make_password
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+from django.utils.translation import gettext_lazy as _
 
 # Enums para usar nos modelos de personagem e outros
 class Raca(models.TextChoices):
@@ -21,7 +21,6 @@ class NivelHabilidade(models.TextChoices):
     ADEPTO = 'A', 'Adepto'
     MESTRE = 'M', 'Mestre'
 
-
 # Tipos de ações que uma habilidade, equipamento ou poder podem ter.
 class TipoAcao(models.TextChoices):
     ATIVA = 'A', 'Ativa'
@@ -29,8 +28,7 @@ class TipoAcao(models.TextChoices):
     PASSIVA = 'P', 'Passiva'
     REACAO = 'R', 'Reação'
     ESPECIAL = 'E', 'Especial'
-    
-    
+
 # Tipos de habilidade que um personagem pode atingir.
 class TipoHabilidade(models.TextChoices):
     HABILIDADE = 'H', 'Habilidade'
@@ -53,75 +51,63 @@ class TipoEquipamento(models.TextChoices):
     MEDIA = 'ME', 'Média'
     COMUM = 'CO', 'Comum'
 
-#Classes de modelos para o sistema de RPG
-class Usuario(models.Model):
-    nome = models.CharField(max_length=100)
-    login = models.CharField(max_length=10, unique=True)
+# Manager customizado para o modelo de usuário
+class UsuarioManager(BaseUserManager):
+    def create_user(self, login, email, senha=None, tipo='JOGADOR', **extra_fields):
+        if not login:
+            raise ValueError(_('O login deve ser informado'))
+        if not email:
+            raise ValueError(_('O email deve ser informado'))
+        email = self.normalize_email(email)
+        user = self.model(login=login, email=email, tipo=tipo, **extra_fields)
+        user.set_password(senha)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, login, email, senha, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(login, email, senha, tipo='ADMIN', **extra_fields)
+
+class Usuario(AbstractBaseUser, PermissionsMixin):
+    TIPOS = (
+        ('JOGADOR', 'Jogador'),
+        ('MESTRE', 'Mestre'),
+        ('ADMIN', 'Administrador'),
+    )
+    login = models.CharField(max_length=30, unique=True)
     email = models.EmailField(unique=True)
-    senha = models.CharField(max_length=128)
-    
-    def verificarSenha(self, senha):
-        return check_password(senha, self.senha)
-    
-    @staticmethod
-    def autenticar(login, senha):
-        try:
-            usuario = Usuario.objects.get(login=login)
-            if usuario.verificarSenha(senha):
-                return usuario
-        except Usuario.DoesNotExist:
-            pass
-        return None
-    
-    def get_subclasse(self):
-        """Retorna a instância da subclasse correspondente, se existir."""
-        for subclass in self.__class__.__subclasses__():
-            try:
-                return subclass.objects.get(pk=self.pk)
-            except subclass.DoesNotExist:
-                continue
-        return self
-    
-    def atualizarSenha(self, senha_atual, nova_senha):
-        if not self.verificarSenha(senha_atual):
-            raise ValidationError("Senha atual incorreta.")
-        if not nova_senha or len(nova_senha) < 6:
-            raise ValidationError("A nova senha deve ter pelo menos 6 caracteres.")
-        self.senha = make_password(nova_senha)
-        self.save()
-    
-    def atualizarEmail(self, novo_email):
-        if not novo_email or '@' not in novo_email:
-            raise ValidationError("O email deve ser válido.")
-        if Usuario.objects.filter(email=novo_email).exists():
-            raise ValidationError("Este email já está em uso.")
-        self.email = novo_email
-        self.save()
-    
-    def save(self, *args, **kwargs):
-        if not self.pk or not Usuario.objects.filter(pk=self.pk, senha=self.senha).exists():
-            self.senha = make_password(self.senha)
-        super().save(*args, **kwargs)
-    
+    tipo = models.CharField(max_length=10, choices=TIPOS, default='JOGADOR')
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    data_criacao = models.DateTimeField(auto_now_add=True)
+
+    USERNAME_FIELD = 'login'
+    REQUIRED_FIELDS = ['email']
+
+    objects = UsuarioManager()
+
     def __str__(self):
-        return self.nome
-        
-class Jogador(Usuario):
+        return self.login
+
+# Perfil específico para Jogador
+class JogadorPerfil(models.Model):
+    usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE, related_name='perfil_jogador')
     biografia = models.TextField(blank=True, null=True)
     fotoDePerfil = models.ImageField(upload_to='fotos_perfil/', blank=True, null=True)
     
     def adicionar_personagem(self, nome_personagem):
         if not nome_personagem:
             return False
-        
+            
         Personagem.objects.create(jogador=self, nome=nome_personagem)
         return True
-    
+
     def listar_personagens(self):
         return list(self.personagens.all())
-    
+
     def __str__(self):
-        return self.nome
+        return self.usuario.login
 
 class Habilidade(models.Model):
     nome = models.CharField(max_length=100)
@@ -130,7 +116,7 @@ class Habilidade(models.Model):
         max_length=1,
         choices=TipoHabilidade.choices,
     )
-    
+
     def listar_descricoes(self):
         return {
             descricao.get_nivel_habilidade_display(): {
@@ -138,7 +124,7 @@ class Habilidade(models.Model):
                 'descricao': descricao.descricao
             } for descricao in self.descricoes.all()
         }
-    
+
     def __str__(self):
         return self.nome
 
@@ -159,23 +145,23 @@ class DescricaoHabilidade(models.Model):
         default=TipoAcao.ATIVA
     )
     descricao = models.TextField()
-    
+
     class Meta:
         unique_together = ('habilidade', 'nivel_habilidade')
-    
+
     def save(self, *args, **kwargs):
         # Se estiver criando (ou seja, ainda não existe)
         if not self.pk and self.habilidade.descricoes.count() >= 3:
             raise ValueError("Não é possível adicionar mais de 3 descrições para a mesma habilidade.")
         super().save(*args, **kwargs)
-    
+
     def __str__(self):
         return f"Descrição {self.get_nivel_habilidade_display()} de {self.habilidade.nome}"
 
 class Qualidade(models.Model):
     nome = models.CharField(max_length=100, unique=True)
     descricao = models.TextField(blank=True, null=True)
-    
+
     def __str__(self):
         return self.nome
 
@@ -208,10 +194,10 @@ class Equipamento(models.Model):
 
     def __str__(self):
         return f"{self.equipamento_base.nome} de {self.personagem.nome}"
-    
+
 class Elixir(Equipamento):
     efeito = models.TextField()
-    
+
     def __str__(self):
         return f"{self.nome} (Efeito: {self.efeito})"
 
@@ -233,7 +219,7 @@ class Arma(Equipamento):
         null=True,
         blank=True,
     )
-    
+
     def __str__(self):
         return f"{self.arma_base.nome} (Dano: {self.arma_base.dano})"
 
@@ -255,7 +241,7 @@ class Armadura(Equipamento):
         null=True,
         blank=True,
     )
-    
+
     def __str__(self):
         return f"{self.armadura_base.nome} (Proteção: {self.armadura_base.protecao})"
 
@@ -282,10 +268,10 @@ class Artefato(models.Model):
         blank=True,
     )
     equipado = models.BooleanField(default=False)
-    
+
     def __str__(self):
         return f"{self.artefato_base.titulo} ({self.personagem.nome if self.personagem else 'Sem Personagem'})"
-    
+
 class Poder(models.Model):
     artefato = models.ForeignKey(
         Artefato,
@@ -301,12 +287,12 @@ class Poder(models.Model):
         default=TipoAcao.ATIVA
     )
     corrupcao = models.CharField(max_length=50)  # Ex: "1d6"
-    
+
     def __str__(self):
         return f"{self.nome} ({self.artefato.titulo})"
-    
+
 class Personagem(models.Model):
-    jogador = models.ForeignKey(Jogador, on_delete=models.CASCADE, related_name='personagens')
+    jogador = models.ForeignKey(JogadorPerfil, on_delete=models.CASCADE, related_name='personagens')
     nome = models.CharField(max_length=100)
     idade = models.PositiveIntegerField(default=18)
     experiencia = models.PositiveIntegerField(default=0)
@@ -321,7 +307,7 @@ class Personagem(models.Model):
     limiar_de_corrupcao = models.PositiveIntegerField(blank=True, null=True)
     sombra = models.CharField(max_length=100, blank=True, null=True)
     citacao = models.CharField(max_length=200, blank=True, null=True)
-    
+
     # Atributos básicos do personagem, eles vão definir alguns dos atributos acima.
     astuto = models.PositiveBigIntegerField(default=10)
     discreto = models.PositiveBigIntegerField(default=10)
@@ -332,20 +318,20 @@ class Personagem(models.Model):
     vigilante = models.PositiveBigIntegerField(default=10)
     vigoroso = models.PositiveBigIntegerField(default=10)
     habilidades_e_poderes = models.ManyToManyField(
-        Habilidade, 
+        Habilidade,
         through='Aprende',
         related_name='personagens'
     )
     altura = models.DecimalField(
-        max_digits=5, 
-        decimal_places=2, 
-        blank=True, 
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
         null=True
     )
     peso = models.DecimalField(
-        max_digits=5, 
-        decimal_places=2, 
-        blank=True, 
+        max_digits=5,
+        decimal_places=2,
+        blank=True,
         null=True
     )
     aparencia = models.TextField(blank=True, null=True)
@@ -367,38 +353,38 @@ class Personagem(models.Model):
     )
     dinheiro = models.JSONField(default=dict) # Ex: {'taler': 1, 'xelins': 3, 'ortegas': 20}
     outras_riquezas = models.TextField(blank=True, null=True)
-    
-    
+
+
     def equipar_armadura(self, armadura):
         if armadura.personagem != self:
             raise ValueError("Essa armadura não pertence ao personagem.")
         self.armadura_equipada = armadura
         self.save()
-        
+
     def equipar_arma(self, arma):
         if arma.personagem != self:
             raise ValueError("Essa arma não pertence ao personagem.")
         self.armas_equipadas.add(arma)
         self.save()
-        
+
     def ganhar_experiencia(self, quantidade):
         self.experiencia += quantidade
         self.experiencia_nao_gasta += quantidade
         self.save()
-        
+
     def remover_experiencia(self, quantidade):
         if quantidade > self.experiencia_nao_gasta:
             raise ValueError("Não é possível remover mais experiência do que a disponível.")
         self.experiencia_nao_gasta -= quantidade
         self.save()
-        
+
     def remover_experiencia_total(self, quantidade):
         if quantidade > self.experiencia:
             raise ValueError("Não é possível remover mais experiência do que a total.")
         self.experiencia -= quantidade
         self.experiencia_nao_gasta -= quantidade
         self.save()
-        
+
     def listar_habilidades(self):
         habilidades = self.aprende_set.select_related('habilidade')
         resultado = []
@@ -412,51 +398,51 @@ class Personagem(models.Model):
                 'nivel': nivel,
             })
         return resultado
-        
+
     def __str__(self):
-        return f"{self.nome} ({self.jogador.nome})"
-    
+        return f"{self.nome} ({self.jogador.usuario.login})"
+
 class Aprende(models.Model):
     personagem = models.ForeignKey(Personagem, on_delete=models.CASCADE)
     habilidade = models.ForeignKey(Habilidade, on_delete=models.CASCADE)
     nivel = models.CharField(
-        max_length=1, 
-        choices=NivelHabilidade.choices, 
+        max_length=1,
+        choices=NivelHabilidade.choices,
         default=NivelHabilidade.NOVATO
     )
-    
+
     class Meta:
         unique_together = ('personagem', 'habilidade')
-    
+
     def promover_nivel(self):
         ordem = ['N', 'A', 'M']
         atual = ordem.index(self.nivel)
         if atual < 2:  # Se não for o nível máximo
             self.nivel = ordem[atual + 1]
             self.save()
-    
+
     def rebaixar_nivel(self):
         ordem = ['N', 'A', 'M']
         atual = ordem.index(self.nivel)
         if atual > 0:
             self.nivel = ordem[atual - 1]
             self.save()
-    
+
     def clean(self):
         super().clean()
-        
+
         existe = Aprende.objects.filter(
-            personagem=self.personagem, 
+            personagem=self.personagem,
             habilidade=self.habilidade
         ).exclude(pk=self.pk).exists()
-        
+
         if existe:
-            raise ValidationError("Esse personagem já aprendeu essa habilidade, atualize o nível em vez de criar uma nova entrada.")
-    
+            raise ValueError("Esse personagem já aprendeu essa habilidade, atualize o nível em vez de criar uma nova entrada.")
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
-    
+
     def __str__(self):
         return f"{self.personagem.nome} - {self.habilidade.nome} ({self.get_nivel_display()})"
 

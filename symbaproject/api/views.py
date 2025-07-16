@@ -1,10 +1,9 @@
-from django.shortcuts import render
 from rest_framework.exceptions  import ValidationError
 from rest_framework.viewsets import ModelViewSet
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.permissions import IsAuthenticated
-from .models import ArmaBase, ArmaduraBase, ArtefatoBase, EquipamentoBase, Usuario, Jogador, Habilidade, DescricaoHabilidade, Qualidade, Equipamento, Elixir, Arma, Armadura, Artefato, Poder, Personagem, Aprende
-from .serializers import ArmaBaseSerializer, ArmaduraBaseSerializer, ArtefatoBaseSerializer, EquipamentoBaseSerializer, UsuarioSerializer, JogadorSerializer, HabilidadeSerializer, DescricaoHabilidadeSerializer, QualidadeSerializer, EquipamentoSerializer, ElixirSerializer, ArmaSerializer, ArmaduraSerializer, ArtefatoSerializer, PoderSerializer, PersonagemSerializer, AprendeSerializer, CustomTokenObtainPairSerializer
+from .models import ArmaBase, ArmaduraBase, ArtefatoBase, EquipamentoBase, JogadorPerfil, Habilidade, DescricaoHabilidade, Qualidade, Equipamento, Elixir, Arma, Armadura, Artefato, Poder, Personagem, Aprende
+from .serializers import ArmaBaseSerializer, ArmaduraBaseSerializer, ArtefatoBaseSerializer, EquipamentoBaseSerializer, UsuarioCadastroSerializer, JogadorPerfilSerializer, HabilidadeSerializer, DescricaoHabilidadeSerializer, QualidadeSerializer, EquipamentoSerializer, ElixirSerializer, ArmaSerializer, ArmaduraSerializer, ArtefatoSerializer, PoderSerializer, PersonagemSerializer, AprendeSerializer, CustomTokenObtainPairSerializer
 
 """Uso do ModelViewSet transforma todas as views no que queremos, onde cada view dará acesso a o CRUD facilmente, ou seja, os ViewsSets irão herdar automaticamente todas as
 operações REST padrão, ou seja, GET, POST, GET(por id), PUT/PATCH e DELETE"""
@@ -13,14 +12,23 @@ operações REST padrão, ou seja, GET, POST, GET(por id), PUT/PATCH e DELETE"""
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+class UsuarioCadastroViewSet(ModelViewSet):
+    serializer_class = UsuarioCadastroSerializer
+    http_method_names = ['post'] # Somente post para cadastro de usuário
     
 class PersonagemScopedViewSet(ModelViewSet):
+    queryset = None # Será definido em cada view que herda de PersonagemScopedViewSet
+    
     def get_personagem(self):
         personagem_id = self.request.data.get('personagem') or self.request.query_params.get('personagem')
         if not personagem_id:
             raise ValidationError("ID do personagem é obrigatório.")
         try:
-            return Personagem.objects.get(id=personagem_id, jogador__usuario=self.request.user)
+            return Personagem.objects.get(
+                id=personagem_id,
+                jogador__usuario=self.request.user
+            )
         except Personagem.DoesNotExist:
             raise ValidationError("Personagem não encontrado.")
 
@@ -28,18 +36,16 @@ class PersonagemScopedViewSet(ModelViewSet):
         serializer.save(personagem=self.get_personagem())
 
     def get_queryset(self):
+        if self.queryset is None:
+            return self.queryset
         return self.queryset.filter(personagem=self.get_personagem())
-    
-class UsuarioViewSet(ModelViewSet):
-    queryset = Usuario.objects.all()
-    serializer_class = UsuarioSerializer
 
-class JogadorViewSet(ModelViewSet):
-    queryset = Jogador.objects.all()
-    serializer_class = JogadorSerializer
+class JogadorPerfilViewSet(ModelViewSet):
+    serializer_class = JogadorPerfilSerializer
     permission_classes = [IsAuthenticated]
+
     def get_queryset(self):
-        return Jogador.objects.filter(usuario=self.request.user)
+        return JogadorPerfil.objects.filter(usuario=self.request.user)
 
 class PersonagemViewSet(ModelViewSet):
     queryset = Personagem.objects.all()
@@ -47,7 +53,7 @@ class PersonagemViewSet(ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        return Personagem.objects.filter(jogador__pk=self.request.user.pk)
+        return Personagem.objects.filter(jogador__usuario=self.request.user)
     
 class HabilidadeViewSet(ModelViewSet):
     queryset = Habilidade.objects.all()

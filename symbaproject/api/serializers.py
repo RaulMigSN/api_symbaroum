@@ -1,10 +1,8 @@
 """Uma forma de serializar os dados do projeto Symba. especificar uma classe para convertar para JSON compatível."""
 
 from rest_framework import serializers
-from django.contrib.auth.hashers import make_password
-from .models import ArmaBase, ArmaduraBase, ArtefatoBase, EquipamentoBase, Usuario, Jogador, Habilidade, DescricaoHabilidade, Qualidade, Equipamento, Elixir, Arma, Armadura, Artefato, Poder, Personagem, Aprende
+from .models import ArmaBase, ArmaduraBase, ArtefatoBase, EquipamentoBase, Usuario, JogadorPerfil, Habilidade, DescricaoHabilidade, Qualidade, Equipamento, Elixir, Arma, Armadura, Artefato, Poder, Personagem, Aprende
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from django.contrib.auth import authenticate
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     login = serializers.CharField()
@@ -19,55 +17,48 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         except Usuario.DoesNotExist:
             raise serializers.ValidationError("Login ou senha inválidos.")
 
-        if not usuario.verificarSenha(password):
+        if not usuario.check_password(password):
             raise serializers.ValidationError("Login ou senha inválidos.")
 
         data = super().validate({
-            'username': usuario.login,  # necessário para compatibilidade interna
+            'username': usuario.login,  # necessário para compatibilidade do SimpleJWT
             'password': password
         })
 
-        # Você pode adicionar mais informações ao payload se quiser
         data['user_id'] = usuario.id
-        data['nome'] = usuario.nome
+        data['login'] = usuario.login
+        data['tipo'] = usuario.tipo
 
         return data
 
-class UsuarioSerializer(serializers.ModelSerializer):
-    """Serializador para o modelo Usuario."""
-    senha = serializers.CharField(write_only=True)  # Campo de senha, apenas para escrita
-    confirmar_senha = serializers.CharField(write_only=True)  # Campo para confirmar a senha
+class UsuarioCadastroSerializer(serializers.ModelSerializer):
+    """Serializador para o modelo Usuario Geral."""
+    senha = serializers.CharField(write_only=True)
+    confirmar_senha = serializers.CharField(write_only=True)
 
-    def validate(self, data):
-        """Valida se a senha e a confirmação de senha são iguais."""
-        senha = data.get('senha') # data.get evita eu ter um KeyError caso o campo não venha.
-        confirmar = data.get('confirmar_senha')
-        if senha != confirmar:
-            raise serializers.ValidationError("As senhas não coincidem.")
-        return data
-    
-    def create(self, validated_data):
-        """Cria um novo usuário com a senha criptografada."""
-        senha = validated_data.pop('senha')
-        validated_data.pop('confirmar_senha',None)  # Remove o campo de confirmação de senha, pois não é necessário no modelo
-        usuario = Usuario(**validated_data)
-        usuario.senha = make_password(senha)  # Criptografa a senha
-        usuario.save()
-        return usuario
-    
-    def update(self, instance, validated_data):
-        """Atualiza o usuário, permitindo a atualização da senha."""
-        senha = validated_data.pop('senha', None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        if senha:
-            instance.senha = make_password(senha)  # Criptografa a nova senha, se fornecida
-        instance.save()
-        return instance
-        
     class Meta:
         model = Usuario
-        fields = ['id', 'nome', 'login', 'email', 'senha', 'confirmar_senha']
+        fields = ['login', 'email', 'senha', 'confirmar_senha', 'tipo']
+
+    def validade(self, data):
+        senha = data.get('senha')
+        confirmar_senha = data.get('confirmar_senha')
+
+        if senha != confirmar_senha:
+            raise serializers.ValidationError("As senhas não coincidem.")
+        return data
+
+    def create(self, validated_data):
+        senha = validated_data.pop('senha')
+        validated_data.pop('confirmar_senha', None)
+        usuario = Usuario.objects.create_user(senha=senha, **validated_data)
+        return usuario
+
+class UsuarioSerializer(serializers.ModelSerializer):
+    """Serializador para o modelo Usuario.""" 
+    class Meta:
+        model = Usuario
+        fields = ['id', 'login', 'email', 'tipo']
         
 class HabilidadeSerializer(serializers.ModelSerializer):
     """Serializador para o modelo Habilidade."""
@@ -83,14 +74,14 @@ class PersonagemSerializer(serializers.ModelSerializer):
         model = Personagem
         fields = '__all__'
         
-class JogadorSerializer(serializers.ModelSerializer):
+class JogadorPerfilSerializer(serializers.ModelSerializer):
     """Serializador para o modelo Jogador."""
     usuario = UsuarioSerializer(read_only=True)  # Inclui os dados do usuário relacionado ao jogador
     personagens = PersonagemSerializer(many=True, read_only=True) # Inclui os personagens relacionados ao jogador
     
     class Meta:
-        model = Jogador
-        fields = ['id', 'usuario', 'biografia', 'personagens']
+        model = JogadorPerfil
+        fields = ['id', 'usuario', 'biografia', 'fotoDePerfil', 'personagens']
 
 class DescricaoHabilidadeSerializer(serializers.ModelSerializer):
     """Serializador para o modelo DescricaoHabilidade."""
