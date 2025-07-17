@@ -1,21 +1,88 @@
-# API Symbaroum
-Uma API para prática de conhecimentos e prática de front-end adaptado para uma API django. Futuramente pretendo crescer esse programa, Sou novo no sistema de RPG também, mas quero tornar mais fácil ainda para jogadores.
-Pensei em utilizar o Django Ninja novamente, mas tem uma sintaxe um pouco diferente do django comum, então, utilizarei o DRF, podendo escalar para futuras aplicações mais pesadas, mas também para mostrar domínio do Django.
+# 🐉 API Symbaroum
 
-## Descrição
-Decidi fazer uma api que cuidasse e gerenciasse as informações de personagens dos meus jogadores, permitindo que os mesmos pudessem exportar a ficha diretamente para um pdf e claro pudessem alterar a vontade.
+Uma API desenvolvida para praticar conhecimentos em Django e facilitar a gestão de personagens do sistema de RPG Symbaroum. O objetivo é criar uma base robusta para futuros projetos, tanto web quanto mobile, e tornar a experiência dos jogadores mais simples e intuitiva.
 
-### Ideia 1
-Produzir uma api que atendesse a um sistema web onde o jogador loga com seu perfil e pudesse gerenciar seu personagem, partindo da simplicidade, conectado numa rede local.
+## 📖 Descrição
+Esta API permite gerenciar informações de personagens dos jogadores, possibilitando exportação de fichas para PDF e edição completa dos dados. O projeto é ideal para quem deseja integrar sistemas de RPG a aplicações web ou mobile, servindo como base para múltiplos front-ends.
 
-### Ideia 2
-Prosseguir a linha da ideia 1, após implementar uma interface web, realizar a criação de um aplicativo, permitindo que fosse construído um app possível de manusear a ficha do personagem por um sistema mobile.
+### 💡 Ideias do Projeto
+- 🕸️ **Ideia 1:** Criar uma API que atenda a um sistema web onde o jogador faz login com seu perfil e gerencia seu personagem, inicialmente em uma rede local.
+- 📱 **Ideia 2:** Após a interface web, desenvolver um aplicativo mobile para manipular fichas de personagem, ampliando o acesso e a praticidade.
 
-## Planos futuros
-- Quero deixar completo essa api para implementar diversos fronts em diversas tecnologias, isso é um parque tecnológico para mim, testarei tudo possível.
-- Após implementar o lado do personagem, partirei para o sistema do Mestre, adicionando a essa api ou a uma aplicação a parte já que o django permite.
-- Caso deseje utilizar, posso fazer um tutorial melhor desenvolvido, estou fazendo isso como treino.
-- Construir front-end baseado em angular, aproveitar para treinar as tecnologias javascript e deixar mais claro o código, a ideia é poder trabalhar com um CRUD bem feito, algumas rotas e views podem ser inseridas para maior utilização da API, será inserida futuramente ou conforme o desenvolvimento do projeto.
-  
-## Pensamentos Para aplicações
-- Atualmente planejo realizar um sistema que funcione web e mobile, utilizando dart ou ionic, provavelmente ionic, pois quero trabalhar diretamente com javascript.
+## 🚀 Funcionalidades
+- 👤 Cadastro e autenticação de usuários (JWT)
+- 📝 Perfis de jogador com biografia e foto
+- 🧙‍♂️ CRUD completo de personagens, com atributos, raça, ocupação, equipamentos, habilidades e poderes
+- 🗃️ Catálogo de equipamentos, armas, armaduras, artefatos e elixires
+- 🧠 Sistema de habilidades, qualidades e poderes
+- 🔗 Relacionamento entre personagens e seus itens/habilidades
+- 📄 Exportação de ficha (planejado)
+
+## 🔗 Principais Endpoints
+A API segue o padrão REST e utiliza o Django REST Framework. Os principais endpoints disponíveis são:
+
+- `/api/cadastro/` — Cadastro de usuários
+- `/api/auth/token/` — Autenticação JWT
+- `/api/perfil-jogador/` — Perfil do jogador
+- `/api/personagens/` — CRUD de personagens
+- `/api/habilidades/`, `/api/qualidades/`, `/api/equipamentos-base/`, `/api/armas-base/`, `/api/armaduras-base/`, `/api/artefatos-base/` — Catálogos do sistema
+- `/api/equipamentos/`, `/api/elixires/`, `/api/armas/`, `/api/armaduras/`, `/api/artefatos/`, `/api/poderes/`, `/api/aprendizados/` — Itens e poderes específicos de cada personagem
+
+## 🛠️ Tecnologias Utilizadas
+- 🐍 **Python 3.11+**
+- 🌐 **Django 5.2**
+- 🔗 **Django REST Framework**
+- 🔒 **SimpleJWT** (autenticação)
+- 🧪 **pytest** e **pytest-django** (testes automatizados)
+- 🗄️ **SQLite** (banco de dados padrão, facilmente adaptável)
+- 📦 Outras libs: Pillow, django-cors-headers, django-extensions, python-decouple, dotenv, etc.
+
+Veja o arquivo `requirements.txt` para a lista completa de dependências.
+
+## 🗂️ Estrutura do Projeto
+- 📦 App principal: `api`
+- 🧑‍💻 Modelos: Usuário, JogadorPerfil, Personagem, Equipamento, Habilidade, Qualidade, Artefato, Poder, etc.
+- 🛠️ Serializers e ViewSets para todos os modelos principais
+- 🧪 Testes automatizados em `symbaproject/api/tests/`
+- 🗃️ Migrações já preparadas em `symbaproject/api/migrations/`
+
+## ▶️ Como Executar
+1. Clone o repositório e instale as dependências:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Configure as variáveis de ambiente (`.env` ou exporte `SECRET_KEY` e `DEBUG`):
+   ```env
+   SECRET_KEY=sua_secret_key
+   DEBUG=True
+   ```
+3. Realize as migrações:
+   ```bash
+   python symbaproject/manage.py migrate
+   ```
+4. Execute o servidor de desenvolvimento:
+   ```bash
+   python symbaproject/manage.py runserver
+   ```
+5. Acesse a API em: `http://localhost:8000/api/`
+
+## 🧪 Como Rodar os Testes
+Execute os testes automatizados com:
+```bash
+pytest
+```
+
+## 🔮 Planos Futuros
+- 🖥️ Completar a API para suportar múltiplos front-ends (Angular, Ionic, etc.)
+- 🎲 Implementar sistema do Mestre (GM)
+- 📚 Gerar tutoriais e documentação detalhada
+- 📝 Exportação de ficha para PDF
+- 🔐 Melhorar autenticação e permissões
+
+## 💬 Observações
+- O projeto está em desenvolvimento e aberto a contribuições.
+
+---
+
+**Pensamentos para aplicações:**
+Atualmente, planejo criar um sistema que funcione tanto para web quanto para mobile, utilizando tecnologias como Dart ou Ionic (provavelmente Ionic, para trabalhar diretamente com JavaScript).
