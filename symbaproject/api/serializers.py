@@ -10,6 +10,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         login = attrs.get('login')
+        attrs['username'] = attrs.get('login')
         password = attrs.get('password')
 
         try:
@@ -20,10 +21,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         if not usuario.check_password(password):
             raise serializers.ValidationError("Login ou senha inválidos.")
 
-        data = super().validate({
-            'username': usuario.login,  # necessário para compatibilidade do SimpleJWT
-            'password': password
-        })
+        data = super().validate(attrs)
 
         data['user_id'] = usuario.id
         data['login'] = usuario.login
